@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content" android:orientation="horizontal" android:layout_width="fill_parent">
+    <TextView android:text="AppName"
+        android:id="@+id/appNameItemHeader"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:gravity="center_vertical"
+        android:paddingLeft="10dp"
+        android:layout_weight="2">
+    </TextView>
+
+    <TextView android:text="PackageName"
+        android:id="@+id/packageNameItemContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textSize="20sp"
+        android:gravity="center_vertical"
+        android:paddingLeft="20dp"
+        android:layout_weight="1">
+    </TextView>
+</LinearLayout>
