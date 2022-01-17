@@ -1,6 +1,10 @@
 package com.tonic.broadcast220114
 
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -17,6 +21,7 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tonic.broadcast220114.data.AppInfoData
+import com.tonic.broadcast220114.data.Constants
 import com.tonic.broadcast220114.databinding.ActivityMainBinding
 import com.tonic.broadcast220114.persistence.AppInfo
 import com.tonic.broadcast220114.persistence.AppInfoDB
@@ -31,7 +36,8 @@ class MainActivity : AppCompatActivity() {
     companion object{
         @JvmStatic var appInfoDataList = ArrayList<AppInfoData>()
     }
-
+    private var mReceiver: BroadcastReceiver? = null
+    private var isRegister = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mContext = applicationContext
@@ -80,8 +86,81 @@ class MainActivity : AppCompatActivity() {
             val appInfo = AppInfoData(appInfoItem.getAppName(),appInfoItem.getPackageName(),appInfoItem.getDescription())
             appInfoDataList.add(appInfo)
         }
-    }
 
+
+        //broadcast receiver
+        val filter: IntentFilter
+        @SuppressLint("CommitPrefEdits")
+        mReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action != null) {
+                    if (intent.action!!.equals(Constants.ACTION.ACTION_ADD_DATA_ACTION, ignoreCase = true)) {
+                        Log.d(mTAG, "ACTION_ADD_DATA_ACTION")
+
+                        val appName = intent.getStringExtra("APP_NAME")
+                        val packageName = intent.getStringExtra("PACKAGE_NAME")
+                        val description = intent.getStringExtra("DESCRIPTION") as String
+                        Log.e(mTAG, "AppName=$appName, PackageName=$packageName, Description=$description")
+                        if(appName!=null && packageName != null){
+                            //add Data to sqlite
+                            val appinfo = AppInfo(appName, packageName, description)
+                            db!!.appInfoDao().insert(appinfo)
+
+                            //add Data to list
+                            val appInfo = AppInfoData(appName,packageName,description)
+                            appInfoDataList.add(appInfo)
+
+                            val successIntent = Intent()
+                            successIntent.action = Constants.ACTION.ACTION_ADD_DATA_SUCCESS
+                            mContext!!.sendBroadcast(successIntent)
+                        }
+                    }
+                    else if (intent.action!!.equals(Constants.ACTION.ACTION_DELETE_DATA_ACTION, ignoreCase = true)) {
+                        Log.d(mTAG, "ACTION_DELETE_DATA_ACTION")
+
+                        val position = intent.getIntExtra("POSITION",-1)
+                        Log.e(mTAG, "position=$position")
+                        if(position>=0){
+                            val appName = appInfoDataList[position].getAppName() as String
+                            val ret = db!!.appInfoDao().delete(appName)
+                            Log.e(mTAG, "Delete $ret line")
+                            if(ret>0){
+                                val successIntent = Intent()
+                                successIntent.action = Constants.ACTION.ACTION_DELETE_DATA_SUCCESS
+                                mContext!!.sendBroadcast(successIntent)
+                            }
+                            appInfoDataList.removeAt(position)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!isRegister) {
+            filter = IntentFilter()
+            filter.addAction(Constants.ACTION.ACTION_ADD_DATA_ACTION)
+            filter.addAction(Constants.ACTION.ACTION_DELETE_DATA_ACTION)
+            mContext!!.registerReceiver(mReceiver, filter)
+            isRegister = true
+            Log.d(mTAG, "registerReceiver mReceiver")
+        }
+    }
+    override fun onDestroy() {
+        Log.i(mTAG, "onDestroy")
+        if (isRegister && mReceiver != null) {
+            try {
+                mContext!!.unregisterReceiver(mReceiver)
+            } catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+            }
+
+            isRegister = false
+            mReceiver = null
+            Log.d(mTAG, "unregisterReceiver mReceiver")
+        }
+
+        super.onDestroy()
+    }
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.main, menu)

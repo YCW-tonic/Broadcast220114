@@ -16,4 +16,7 @@ interface AppInfoDao {
 
     @Query("DELETE FROM " + AppInfo.TABLE_NAME + " WHERE 1")
     fun clearTable()
+
+    @Query("DELETE FROM " + AppInfo.TABLE_NAME + " WHERE AppName like :AppName")
+    fun delete(AppName: String): Int
 }
